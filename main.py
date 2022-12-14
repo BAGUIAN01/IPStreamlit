@@ -405,16 +405,40 @@ if choose=="Rapport":
 		st.write("---")
 		st.markdown(
 			'<p class="intro"><b>On a commencé à faire l’étude dynamique du pendule théoriquement en déterminant l’équation du mouvement avec frottements secs et en la simulant sous python</b></p>',unsafe_allow_html=True) 
-		img_cp1, img_cp2 = st.columns(2)
-		with img_cp1:
-			image = Image.open("images/frottements_secs.png")
-			st.image(image)
 		
-		
-		with img_cp2:
-			image1 = Image.open("images/pendule.png")
+		equation_Theta = r'''
+			$$
+			\dot{\dot{\theta}}+\frac{g}{l}\sin(\theta) +c\dot{\theta} +fl =0
+			$$
+			'''
 
-			st.image(image1,width=200)
+		st.markdown(equation_Theta)
+		st.markdown(
+			'<p class="intro"><b> avec :<p>g</p><p> = 9.81</p><p>l = 25 cm</p><p>m = 0.1 kg</p><p>c = 8</p> <p>f = 0.2</p> </b></p>',unsafe_allow_html=True) 
+		st.markdown(
+			'<p class="intro"><b>On obtient en notation matricielle</b></p>',unsafe_allow_html=True)
+		
+		z = r'''
+			$$
+			\Z = \begin{bmatrix}\theta\\\dot{\theta}\end{bmatrix}
+			$$
+			'''
+		
+		z_point = r'''
+			$$
+			\dot{Z} = \begin{bmatrix} Z_1  \\-\frac{g}{l}\sin(Z_0)-cZ_1-fl\end{bmatrix}
+			$$
+			'''
+
+		st.markdown(z)
+		st.markdown(z_point)
+		st.markdown(
+			'<p class="intro"><b><p>Après l obtention de la forme matricielle on a résolu l équation en utilisant Odeint de scipy.<p>La simulation donne le résultat suivant<p></p>  </b></p>',unsafe_allow_html=True)
+
+		
+		image1 = Image.open("images/Simulation.PNG")
+
+		st.image(image1)
 	
 	elif ele_plan=="IHM":
 		st.markdown('<p class="first_titre">IHM</p>', unsafe_allow_html=True)
@@ -427,6 +451,7 @@ if choose=="Rapport":
 		st.markdown(
 		'(courbe 1 : Theta Accéléromètre, courbe 2 : Theta Potentiomètre, courbe 3 : Vitesse Encodeur)',
 		unsafe_allow_html=True)
+		
 		st.markdown(
 		'<p class="intro"><b>Lors des tests, nous avons rencontré des problèmes d’affichage avec notre potentiomètre. En effet, notre potentiomètre envoyait des sauts brusques. C’était à cause de notre valeur qui faisait un tour complet et retourne la valeur de l’autre côté.</b></p>',
 		unsafe_allow_html=True)
