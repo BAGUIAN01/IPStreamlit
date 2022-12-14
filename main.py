@@ -1,9 +1,7 @@
-
-
-
-import streamlit as st
+from sqlalchemy import true
 from streamlit_option_menu import option_menu
 from PIL import Image
+import streamlit as st
 import os
 import re
 import time
@@ -23,7 +21,7 @@ from pdfminer3.pdfpage import PDFPage
 from pdfminer3.pdfinterp import PDFResourceManager
 from pdfminer3.pdfinterp import PDFPageInterpreter
 from pdfminer3.converter import TextConverter
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, savgol_filter
 i =0
 portsconnecté = []
 tab = []
@@ -44,21 +42,6 @@ types_courbe = ["Théta","Théta dérivée prémière","Théta dérivée seconde
 
 
 
-	# maxindex=0
-	# for i in range(0,len(courbe)-1):
-	#    if courbe[i]==max(courbe):
-	#        maxindex=i
-	#        break
-	
-	# lp=[]
-	# for i in range(maxindex,len(courbe)-1):
-	#    if courbe [i-1] <= courbe [i] and courbe [i] >= courbe [i+1] :
-	#        lp.append (i)
-	
-	# s=0
-	# for l in range (1,len (lp)) :
-	#    s += lp [l] - lp [l-1]
-	# return float (s) / (len (lp)-1)*dt
 def periode (courbe,dt) :
 	lp = []
 	p = 0
@@ -69,7 +52,7 @@ def periode (courbe,dt) :
 	s = 0
 	for l in range (1,len (lp)):
 		s += lp [l] - lp [l-1]
-	return float (s) / (len (lp)-1)
+	return float (s) / (2*(len (lp)-1))
 
 def theta(x,y,z):
 	
@@ -77,7 +60,9 @@ def theta(x,y,z):
 	# A_yout = (((y*3.3)/4096)-1.65)/0.33
 	# A_zout = (((z*3.3)/4096)-1.65)/0.33
 	
-	resultat = np.arctan(x/(np.sqrt(y*y+z*z)))
+	resultat = np.arctan(x)
+	# resultat = np.arctan(y/(np.sqrt(x*x+z*z)))
+	# resultat = np.arctan((np.sqrt(y*y+x*x))/z)
 	return  (180/3.14)*resultat
 
 
@@ -109,9 +94,11 @@ def show_pdf(file_path):
 
 
 def pendule(z, t):
-    v = np.array([z[1],
-                  -b*z[1] -c*(z[0]) -0.2*0.25])
-    return v
+	# Z1 = z[1]
+	# Z0 = z[0]
+	v = np.array([z[1],
+				  -float(z[1]) -float(z[0])])
+	return v
 
 g = 9.81
 l = 25 #cm
@@ -202,7 +189,7 @@ if choose=="Home":
 	with c1:
 		st.header("Description")
 		st.markdown(
-			'<p class="intro"><b>Dans ce projet nous souhaitons instrumenter un pendule simple, c’est-à-dire mesure les déplacements, vitesses et accélérations du pendule. Dans un premier temps,vous devrez réaliser le système de mesure, puis dans un second temps vous devrez exploiter vos résultats de mesure pour les comparer avec la théorie.</b></p>',
+			'<p class="intro"><b>Dans ce projet nous souhaitons instrumenter un pendule simple, c’est-à-dire mesure les déplacements, vitesses et accélérations du pendule. Dans un premier temps, nous avons réaliser le système de mesure, puis dans un second temps nous avons exploité nos résultats de mesure pour les comparer avec la théorie.</b></p>',
 			unsafe_allow_html=True)
 		
 		
@@ -214,7 +201,7 @@ if choose=="Home":
 	vi3, vi4 = st.columns((3, 2))
 	st.subheader("Teams")
 	st.write(
-			"• [BAGUIAN HAROUNA/GitHub](https://github.com/Diaffat)")
+			"• [BAGUIAN HAROUNA/GitHub](https://github.com/Diaffat) \r\n• [Frederick VICKERY/GitHub](https://github.com/Frederick-dev-byte-cmyk-cmd-web-creator/IPS_Pendule)")
 
 
 if choose=="IHM":
@@ -302,66 +289,72 @@ if choose=="IHM":
 		
 	st.header("Simulation")
 
-	for i in range(0,len(v_theta)):
-		v_theta[i]=abs(v_theta[i])
-
 	T0 = periode(v_theta,0.02)
 
-	deriv_potentio = np.diff(valeur_a)/0.02
+	l = (g*T0*T0)/(4*3.14*3.14*2)
+
+	if len(v_theta)!=0:
+		v_theta=v_theta-sum(v_theta)/len(v_theta)
+		v_theta=v_theta*180/6
+
+	v_theta_lisse = savgol_filter(v_theta,51,3)
+	valeur_a_lisse = savgol_filter(valeur_a,51,3)
+
+	deriv_potentio = np.diff(valeur_a_lisse)/0.02
 	deriv_potentio = np.append(deriv_potentio,0)
+	deriv_acc = np.diff(v_theta_lisse)/0.02
+	deriv_acc = np.append(deriv_acc,0)
 
+	integ_encodeur = np.cumsum(valeur_p)
+	
+	st.header("Théta Encodeur")
 
-	fig = px.line(x=t, y=v_theta, title='theta Accéléromètre')
+	fig = px.line(x=t, y=integ_encodeur)
+
+	st.plotly_chart(fig)
+	
+	fig, ax = plt.subplots()
+
+	st.header("Théta Accéléromètre")
+
+	ax.plot(t, v_theta)
+
+	ax.plot(t, v_theta_lisse)
 
 	st.plotly_chart(fig)
 
-	fig = px.line(x=t, y=valeur_a, title='theta Potentiomètre')
+	fig, ax = plt.subplots()
+
+	st.header("Théta Potentiomètre")
+
+	ax.plot(t, valeur_a)
 
 	st.plotly_chart(fig)
 
-	fig = px.line(x=t, y=valeur_p, title='vitesse encodeur')
+	fig = px.line(x=t, y=valeur_p)
+
+	st.header("Vitesse Encodeur")
 
 	st.plotly_chart(fig)
 
-	st.write("T0 : "+str(T0))    
+	fig = px.line(x=t, y=deriv_acc)
+
+	st.header("Vitesse Accéléromètre")
+
+	st.plotly_chart(fig)
 
 	fig = px.line(x=t, y=deriv_potentio)
 
-	st.plotly_chart(fig)
-
-
-
-	
-	Z0=[np.pi-0.1, 0]
-	
-	Y=odeint(pendule,Z0,t)
-	
-	# c_fro, c_masse, c_long, c_posi = st.columns(4)
-	# v_fro = c_fro.number_input("Coéfficient de froteement")
-	# v_masse=c_masse.number_input("Masse")
-	# v_long = c_long.number_input("Longueur")
-	# v_posi = c_posi.number_input("Angle de départ")
-	# vid1,vid2 = st.columns(2)
-	# g3,g4 = st.columns(2)
-	# typec = g3.selectbox("Type de courbe",types_courbe)
-	# g1, g2 = st.columns((3,2))
-	# with g1:
-	#     st.header(typec)
-	st.plotly_chart(fig)
-	fig = px.scatter(x=t, y=Y[:,0])
+	st.header("Vitesse Potentiomètre")
 
 	st.plotly_chart(fig)
+
+	st.write("Periode T0 : "+str(T0)+" s")
+
+	st.write("Estimateur position de la masse : "+str(l*100)+" cm") 
 			
-	# with g2:
-		
-	#     st.header("Choix de Courbes")
-		
-	#     st.multiselect("Courbes Théta",noms_courbes)
 
-	st.header("Estimateur")
-	c2,c3 = st.columns(2)
-	if c2.button("Calculer"):
-		c3.header("25 cm")
+
 
 res = ["Sujet","Datashets","STM32","Circuit électronique","eagle"]
 if choose=="Ressources":
@@ -405,35 +398,53 @@ if choose=="Rapport":
 		st.write("---")
 		st.markdown(
 			'<p class="intro"><b>On a commencé à faire l’étude dynamique du pendule théoriquement en déterminant l’équation du mouvement avec frottements secs et en la simulant sous python</b></p>',unsafe_allow_html=True) 
-		img_cp1, img_cp2 = st.columns(2)
-		
-		# plt.plot(t,Y[:,0],color='pink')
+
+		equation_Theta = r'''
+			$$
+			\dot{\dot{\theta}}+\frac{g}{l}\sin(\theta) +c\dot{\theta} +fl =0
+			$$
+			'''
+
+		st.markdown(equation_Theta)
+		st.markdown(
+			'<p class="intro"><b> avec :</p><p>g = 9.81 <p>l = 25 cm<p>m = 0.1 kg<p>c = 8 <p>f = 0.2 </b>',unsafe_allow_html=True) 
+		st.markdown(
+			'<p class="intro"><b>On obtient en notation matricielle</b></p>',unsafe_allow_html=True)
+
+		z = r'''
+			$$
+			\Z = \begin{bmatrix}\theta\\\dot{\theta}\end{bmatrix}
+			$$
+			'''
+
+		z_point = r'''
+			$$
+			\dot{Z} = \begin{bmatrix} Z_1  \\-\frac{g}{l}\sin(Z_0)-cZ_1-fl\end{bmatrix}
+			$$
+			'''
+
+		st.markdown(z)
+		st.markdown(z_point)
+		st.markdown(
+			'<p class="intro"><b><p>Après l obtention de la forme matricielle on a résolu l équation en utilisant Odeint de scipy.<p>La simulation donne le résultat suivant<p></p>  </b></p>',unsafe_allow_html=True)
 
 
-		with img_cp1:
-			image = Image.open("images/frottements_secs.png")
-			st.image(image)
-		
-		
-		with img_cp2:
-			image1 = Image.open("images/pendule.png")
+		image1 = Image.open("images/Simulation2.PNG")
 
-			st.image(image1,width=200)
-	
+		st.image(image1)
 	elif ele_plan=="IHM":
 		st.markdown('<p class="first_titre">IHM</p>', unsafe_allow_html=True)
 		st.write("---")
 		st.markdown(
 		'''<p class="intro"><b>Comme vous pouvez l'observer, notre IHM est implémenté sur notre page web, codée en python grâce à Streamlit. Streamlit est un outil open-source qui sert à fabriquer des applications web avec des fonctionnalités en python, et on l’utilise en tandem avec serial, numpy et plotly pour sa fonctionnalité. Nous avons utilisé notre IHM pour effectuer les calculs que notre STM32 ne peut pas effectuer efficacement (par exemple, arctan() et des opérations de grandes listes) ainsi que les graphiques des courbes. On récupère les données avec un port série et sous notre format (“x%.2f ty%.2f uz%.2f va%d wp%.2f f\r\n”) pour faciliter le traitement. On effectue une simulation sur 10 secondes, et ensuite on affiche les courbes reçues pour identifier l’influence du bruit ainsi que la distance estimée de la masse.</b></p>''',
 		unsafe_allow_html=True)
-		img_acc = Image.open("images/Simulation.PNG")
-		st.image(img_acc)
 		st.markdown(
-		'(courbe 1 : Theta Accéléromètre, courbe 2 : Theta Potentiomètre, courbe 3 : Vitesse Encodeur)',
+			'''<p class="intro"><b>Nous avons appliqué un filtre Savitzky-Golay sur l'accéléromètre afin de lisser la courbe et avec ceci nous pouvons dériver la courbe pour avoir une vitesse cohérent avec la vitesse de l'encodeur</b></p>''',
 		unsafe_allow_html=True)
-		st.markdown(
-		'<p class="intro"><b>Lors des tests, nous avons rencontré des problèmes d’affichage avec notre potentiomètre. En effet, notre potentiomètre envoyait des sauts brusques. C’était à cause de notre valeur qui faisait un tour complet et retourne la valeur de l’autre côté.</b></p>',
-		unsafe_allow_html=True)
+		img_sim = Image.open("images/Simulation.PNG")
+		st.image(img_sim)
+		img_sim_2 = Image.open("images/Simulation_2.PNG")
+		st.image(img_sim_2)
  
 	elif ele_plan=="Conclusion":
 		st.markdown('<p class="first_titre">Conclusion</p>', unsafe_allow_html=True)
@@ -535,7 +546,7 @@ if choose=="Rapport":
 		'<p class="grand_titre">- Amplification : consiste à adapter le niveau du signal issu du capteur à la chaîne globale d’acquisition.</p>',
 		unsafe_allow_html=True)
 		st.markdown(
-		'<p class="intro">On a opté pour le choix d’un amplificateur d’instrumentation (AD621) afin de passer d’une tension qui ne dépasse pas 1V à une tension de 3.3V. Ce choix vient du fait que cet amplificateur est unipolaire, donc on aura qu’une source de tension positive à gérer.</p>',
+		'<p class="intro">On a opté pour le choix d’un amplificateur d’instrumentation (AD623) afin de passer d’une tension qui ne dépasse pas 1V à une tension de 3.3V. Ce choix vient du fait que cet amplificateur est unipolaire, donc on aura qu’une source de tension positive à gérer.</p>',
 		unsafe_allow_html=True)
 		
 		st.markdown(
