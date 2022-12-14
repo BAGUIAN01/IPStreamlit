@@ -446,7 +446,7 @@ if choose=="Rapport":
 		st.markdown(
 		'''<p class="intro"><b>Comme vous pouvez l'observer, notre IHM est implémenté sur notre page web, codée en python grâce à Streamlit. Streamlit est un outil open-source qui sert à fabriquer des applications web avec des fonctionnalités en python, et on l’utilise en tandem avec serial, numpy et plotly pour sa fonctionnalité. Nous avons utilisé notre IHM pour effectuer les calculs que notre STM32 ne peut pas effectuer efficacement (par exemple, arctan() et des opérations de grandes listes) ainsi que les graphiques des courbes. On récupère les données avec un port série et sous notre format (“x%.2f ty%.2f uz%.2f va%d wp%.2f f\r\n”) pour faciliter le traitement. On effectue une simulation sur 10 secondes, et ensuite on affiche les courbes reçues pour identifier l’influence du bruit ainsi que la distance estimée de la masse.</b></p>''',
 		unsafe_allow_html=True)
-		img_acc = Image.open("images/Simulation.PNG")
+		img_acc = Image.open("images\ihm.PNG")
 		st.image(img_acc)
 		st.markdown(
 		'(courbe 1 : Theta Accéléromètre, courbe 2 : Theta Potentiomètre, courbe 3 : Vitesse Encodeur)',
