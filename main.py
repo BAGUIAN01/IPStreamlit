@@ -1,8 +1,9 @@
- 
-from sqlalchemy import true
+
+
+
+import streamlit as st
 from streamlit_option_menu import option_menu
 from PIL import Image
-import streamlit as st
 import os
 import re
 import time
@@ -108,11 +109,9 @@ def show_pdf(file_path):
 
 
 def pendule(z, t):
-	# Z1 = z[1]
-	# Z0 = z[0]
-	v = np.array([z[1],
-				  -float(z[1]) -float(z[0])])
-	return v
+    v = np.array([z[1],
+                  -b*z[1] -c*(z[0]) -0.2*0.25])
+    return v
 
 g = 9.81
 l = 25 #cm
@@ -348,6 +347,7 @@ if choose=="IHM":
 	# g1, g2 = st.columns((3,2))
 	# with g1:
 	#     st.header(typec)
+	st.plotly_chart(fig)
 	fig = px.scatter(x=t, y=Y[:,0])
 
 	st.plotly_chart(fig)
@@ -405,40 +405,20 @@ if choose=="Rapport":
 		st.write("---")
 		st.markdown(
 			'<p class="intro"><b>On a commencé à faire l’étude dynamique du pendule théoriquement en déterminant l’équation du mouvement avec frottements secs et en la simulant sous python</b></p>',unsafe_allow_html=True) 
+		img_cp1, img_cp2 = st.columns(2)
 		
-		equation_Theta = r'''
-			$$
-			\dot{\dot{\theta}}+\frac{g}{l}\sin(\theta) +c\dot{\theta} +fl =0
-			$$
-			'''
+		# plt.plot(t,Y[:,0],color='pink')
 
-		st.markdown(equation_Theta)
-		st.markdown(
-			'<p class="intro"><b> avec :<p>g</p><p> = 9.81</p><p>l = 25 cm</p><p>m = 0.1 kg</p><p>c = 8</p> <p>f = 0.2</p> </b></p>',unsafe_allow_html=True) 
-		st.markdown(
-			'<p class="intro"><b>On obtient en notation matricielle</b></p>',unsafe_allow_html=True)
+
+		with img_cp1:
+			image = Image.open("images/frottements_secs.png")
+			st.image(image)
 		
-		z = r'''
-			$$
-			\Z = \begin{bmatrix}\theta\\\dot{\theta}\end{bmatrix}
-			$$
-			'''
 		
-		z_point = r'''
-			$$
-			\dot{Z} = \begin{bmatrix} Z_1  \\-\frac{g}{l}\sin(Z_0)-cZ_1-fl\end{bmatrix}
-			$$
-			'''
+		with img_cp2:
+			image1 = Image.open("images/pendule.png")
 
-		st.markdown(z)
-		st.markdown(z_point)
-		st.markdown(
-			'<p class="intro"><b><p>Après l obtention de la forme matricielle on a résolu l équation en utilisant Odeint de scipy.<p>La simulation donne le résultat suivant<p></p>  </b></p>',unsafe_allow_html=True)
-
-		
-		image1 = Image.open("images/Simulation.PNG")
-
-		st.image(image1)
+			st.image(image1,width=200)
 	
 	elif ele_plan=="IHM":
 		st.markdown('<p class="first_titre">IHM</p>', unsafe_allow_html=True)
@@ -446,12 +426,11 @@ if choose=="Rapport":
 		st.markdown(
 		'''<p class="intro"><b>Comme vous pouvez l'observer, notre IHM est implémenté sur notre page web, codée en python grâce à Streamlit. Streamlit est un outil open-source qui sert à fabriquer des applications web avec des fonctionnalités en python, et on l’utilise en tandem avec serial, numpy et plotly pour sa fonctionnalité. Nous avons utilisé notre IHM pour effectuer les calculs que notre STM32 ne peut pas effectuer efficacement (par exemple, arctan() et des opérations de grandes listes) ainsi que les graphiques des courbes. On récupère les données avec un port série et sous notre format (“x%.2f ty%.2f uz%.2f va%d wp%.2f f\r\n”) pour faciliter le traitement. On effectue une simulation sur 10 secondes, et ensuite on affiche les courbes reçues pour identifier l’influence du bruit ainsi que la distance estimée de la masse.</b></p>''',
 		unsafe_allow_html=True)
-		img_acc = Image.open("images/ihm.PNG")
+		img_acc = Image.open("images/Simulation.PNG")
 		st.image(img_acc)
 		st.markdown(
 		'(courbe 1 : Theta Accéléromètre, courbe 2 : Theta Potentiomètre, courbe 3 : Vitesse Encodeur)',
 		unsafe_allow_html=True)
-		
 		st.markdown(
 		'<p class="intro"><b>Lors des tests, nous avons rencontré des problèmes d’affichage avec notre potentiomètre. En effet, notre potentiomètre envoyait des sauts brusques. C’était à cause de notre valeur qui faisait un tour complet et retourne la valeur de l’autre côté.</b></p>',
 		unsafe_allow_html=True)
